@@ -16,6 +16,13 @@ typedef struct
     float attackCooldown;
 } Player;
 
+typedef enum
+{
+    STATE_PATROL,
+    STATE_CHASE,
+    STATE_ATTACK
+} EnemyState;
+
 typedef struct
 {
     float x, y;
@@ -24,13 +31,80 @@ typedef struct
     int maxHealth;
     bool isAlive;
     float hitFlashTimer;
+    EnemyState state;
     float patrolLeft;
     float patrolRight;
-    bool isAttacking;
+    float alertRange;
+    float chaseSpeed;
     float attackTimer;
     float attackCooldown;
     int facing;
 } Enemy;
+
+void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRange, float enemyAttackDur, float enemyAttackCDMax, float chaseSpeed)
+{
+    if (!e->isAlive)
+        return;
+
+    if (e->hitFlashTimer > 0)
+        e->hitFlashTimer -= dt;
+    if (e->attackCooldown > 0)
+        e->attackCooldown -= dt;
+    
+    float dx = (p->x + 20) - (e->x + 20);
+    float dy = (p->y + 30) - (e->y + 30);
+    float dist = sqrtf(dx * dx + dy * dy);
+
+    switch (e->state)
+    {
+        case STATE_PATROL:
+        {
+            e->x += e->vx * dt;
+            if (e->x <= e->patrolLeft)
+            {
+                e->x = e->patrolLeft;
+                e->vx = fabsf(e->vx);
+                e->facing = 1;
+            }
+            if (e->x + 40 >= e->patrolRight)
+            {
+                e->x = e->patrolRight - 40;
+                e->vx = -fabsf(e->vx);
+                e->facing = -1;
+            }
+            if (dist < alertRange)
+                e->state = STATE_CHASE;
+            break;
+        }
+        case STATE_CHASE:
+        {
+            e->facing = (dx >= 0) ? 1 : -1;
+            e->vx = e->facing * chaseSpeed;
+            e->x += e->vx * dt;
+
+            if (dist < attackRange && e->attackCooldown <= 0)
+            {
+                e->state = STATE_ATTACK;
+                e->attackTimer = enemyAttackDur;
+            }
+            else if (dist > alertRange * 1.5f)
+            {
+                e->state = STATE_PATROL;
+            }
+            break;
+        }
+        case STATE_ATTACK:
+        {
+            e->attackTimer -= dt;
+            if (e->attackTimer <= 0)
+            {
+                e->state = STATE_CHASE;
+                e->attackCooldown = enemyAttackCDMax;
+            }
+            break;
+        }
+    }
+}
 
 Rectangle GetAttackHitbox(Player p)
 {
@@ -58,10 +132,8 @@ void DrawHealthBar(float x, float y, float w, float h,
     DrawRectangleLines((int)x, (int)y, (int)w, (int)h, WHITE);
 }
 
-void ResetGame(Player *p, Enemy enemies[], int enemyCount)
+void ResetGame(Player *p, Enemy enemies[])
 {
-    (void)enemyCount;
-
     p->x = 100;
     p->y = 300;
     p->vx = 0;
@@ -71,16 +143,16 @@ void ResetGame(Player *p, Enemy enemies[], int enemyCount)
     p->attackTimer = 0;
     p->facing = 1;
     p->hasHit = false;
-    p->health = 5;
+    p->health = 500;
     p->hitFlashTimer = 0;
     p->invincibleTimer = 0;
 
     enemies[0] = (Enemy){
-        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .patrolLeft = 405, .patrolRight = 505, .isAttacking = false, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 405, .patrolRight = 505, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
     enemies[1] = (Enemy){
-        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .patrolLeft = 320, .patrolRight = 620, .isAttacking = false, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
+        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 320, .patrolRight = 620, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
     enemies[2] = (Enemy){
-        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .patrolLeft = 610, .patrolRight = 760, .isAttacking = false, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 610, .patrolRight = 760, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
 }
 
 int main(void)
@@ -93,12 +165,13 @@ int main(void)
         {0, 400, 800, 50},
         {150, 300, 150, 20},
         {400, 210, 150, 20},
-        {600, 320, 150, 20}};
+        {600, 320, 150, 20}
+    };
 
     int enemyCount = 3;
     Enemy enemies[3];
     Player player;
-    ResetGame(&player, enemies, enemyCount);
+    ResetGame(&player, enemies);
 
     float speed = 200.0f;
     float gravity = 1000.0f;
@@ -106,6 +179,8 @@ int main(void)
     float enemyAttackDur = 0.20f;
     float attackRange = 90.0f;
     float enemyAttackCDMax = 0.8f;
+    float alertRange = 200.0f;
+    float chaseSpeed = 90.0f;
 
     bool gameOver = false;
     bool gameWon = false;
@@ -114,23 +189,22 @@ int main(void)
     {
         float dt = GetFrameTime();
 
-        if ((gameOver || gameWon) && IsKeyPressed(KEY_R))
+        if ((gameOver || gameWon) && (IsKeyPressed(KEY_R) || (IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))))
         {
-            ResetGame(&player, enemies, enemyCount);
+            ResetGame(&player, enemies);
             gameOver = false;
             gameWon = false;
         }
 
         if (!gameOver && !gameWon)
         {
-
             player.vx = 0;
-            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D))
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0.2f))
             {
                 player.vx = speed;
                 player.facing = 1;
             }
-            if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A))
+            if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -0.2f))
             {
                 player.vx = -speed;
                 player.facing = -1;
@@ -154,7 +228,7 @@ int main(void)
             if (player.x + 40 > 800)
                 player.x = 760;
 
-            if (IsKeyPressed(KEY_SPACE) && player.isOnGround)
+            if (player.isOnGround && (IsKeyPressed(KEY_SPACE) || (IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))))
                 player.vy = -500.0f;
             player.isOnGround = false;
             player.vy += gravity * dt;
@@ -179,7 +253,7 @@ int main(void)
                 }
             }
 
-            if (IsKeyPressed(KEY_Z) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !player.isAttacking && player.attackCooldown <= 0)
+            if ((!player.isAttacking && player.attackCooldown <= 0) && (IsKeyPressed(KEY_Z) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_TRIGGER_1))))
             {
                 player.isAttacking = true;
                 player.attackTimer = attackDuration;
@@ -210,24 +284,7 @@ int main(void)
                     continue;
                 aliveCount++;
 
-                if (e->hitFlashTimer > 0)
-                    e->hitFlashTimer -= dt;
-                if (e->attackCooldown > 0)
-                    e->attackCooldown -= dt;
-
-                e->x += e->vx * dt;
-                if (e->x <= e->patrolLeft)
-                {
-                    e->x = e->patrolLeft;
-                    e->vx = fabsf(e->vx);
-                    e->facing = 1;
-                }
-                if (e->x + 40 >= e->patrolRight)
-                {
-                    e->x = e->patrolRight - 40;
-                    e->vx = -fabsf(e->vx);
-                    e->facing = -1;
-                }
+                UpdateEnemy(e, &player, dt, attackRange, alertRange, enemyAttackDur, enemyAttackCDMax, chaseSpeed);
 
                 if (player.isAttacking && !player.hasHit)
                 {
@@ -241,17 +298,6 @@ int main(void)
                         if (e->health <= 0)
                             e->isAlive = false;
                     }
-                }
-
-                float dx = (player.x + 20) - (e->x + 20);
-                float dy = (player.y + 30) - (e->y + 30);
-                float dist = sqrtf(dx * dx + dy * dy);
-
-                if (!e->isAttacking && e->attackCooldown <= 0 && dist < attackRange)
-                {
-                    e->isAttacking = true;
-                    e->attackTimer = enemyAttackDur;
-                    e->facing = (dx >= 0) ? 1 : -1;
                 }
 
                 Rectangle pRect = {player.x, player.y, 40, 60};
@@ -268,34 +314,30 @@ int main(void)
                     }
                 }
 
-                if (e->isAttacking)
+                if (e->state == STATE_ATTACK)
                 {
-                    e->attackTimer -= dt;
-                    if (player.invincibleTimer <= 0)
+                    Rectangle ehit = GetEnemyAttackHitbox(*e);
+                    if (player.invincibleTimer <= 0 && CheckCollisionRecs(ehit, pRect))
                     {
-                        Rectangle ehit = GetEnemyAttackHitbox(*e);
-                        if (CheckCollisionRecs(ehit, pRect))
+                        player.health--;
+                        player.hitFlashTimer = 0.35f;
+                        player.invincibleTimer = 0.7f;
+                        if (player.health <= 0)
                         {
-                            player.health--;
-                            player.hitFlashTimer = 0.35f;
-                            player.invincibleTimer = 0.7f;
-                            if (player.health <= 0)
-                            {
-                                player.health = 0;
-                                gameOver = true;
-                            }
+                            player.health = 0;
+                            gameOver = true;
                         }
                     }
                     if (e->attackTimer <= 0)
                     {
-                        e->isAttacking = false;
+                        e->state = STATE_CHASE;
                         e->attackCooldown = enemyAttackCDMax;
                     }
                 }
-            }
 
             if (aliveCount == 0)
                 gameWon = true;
+            }
         }
 
         BeginDrawing();
@@ -316,7 +358,7 @@ int main(void)
             float eyeX = (e->facing == 1) ? e->x + 30 : e->x + 10;
             DrawCircle((int)eyeX, (int)e->y + 10, 5, (Color){20, 20, 20, 255});
 
-            if (e->isAttacking)
+            if (e->state == STATE_ATTACK)
             {
                 Rectangle ehit = GetEnemyAttackHitbox(*e);
                 DrawRectangleRec(ehit, (Color){160, 0, 0, 210});
