@@ -36,6 +36,7 @@ typedef struct
     float patrolRight;
     float alertRange;
     float chaseSpeed;
+    bool elevated;
     float attackTimer;
     float attackCooldown;
     int facing;
@@ -55,6 +56,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
     float dy = (p->y + 30) - (e->y + 30);
     float dist = sqrtf(dx * dx + dy * dy);
 
+DrawText(TextFormat("dist %.0f", dist), e->x, e->y, 30, WHITE);
     switch (e->state)
     {
         case STATE_PATROL:
@@ -80,7 +82,14 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
         {
             e->facing = (dx >= 0) ? 1 : -1;
             e->vx = e->facing * chaseSpeed;
-            e->x += e->vx * dt;
+            
+            float futureX = e->x + e->vx * dt;
+
+            if(!e->elevated)
+                e->x = futureX;
+
+            else if(futureX >= e->patrolLeft && futureX + 40 <= e-> patrolRight)
+                e->x = futureX;
 
             if (dist < attackRange && e->attackCooldown <= 0)
             {
@@ -143,16 +152,16 @@ void ResetGame(Player *p, Enemy enemies[])
     p->attackTimer = 0;
     p->facing = 1;
     p->hasHit = false;
-    p->health = 500;
+    p->health = 10;
     p->hitFlashTimer = 0;
     p->invincibleTimer = 0;
 
     enemies[0] = (Enemy){
-        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 405, .patrolRight = 505, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 400, .patrolRight = 550, .elevated = true, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
     enemies[1] = (Enemy){
-        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 320, .patrolRight = 620, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
+        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 320, .patrolRight = 620, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
     enemies[2] = (Enemy){
-        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 610, .patrolRight = 760, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 610, .patrolRight = 760, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
 }
 
 int main(void)
