@@ -18,9 +18,10 @@ typedef struct
 
 typedef enum
 {
-    STATE_PATROL,
-    STATE_CHASE,
-    STATE_ATTACK
+    PATROLING,
+    CHASE,
+    ATTACKING,
+    RETURN
 } EnemyState;
 
 typedef struct
@@ -56,10 +57,10 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
     float dy = (p->y + 30) - (e->y + 30);
     float dist = sqrtf(dx * dx + dy * dy);
 
-DrawText(TextFormat("dist %.0f", dist), e->x, e->y, 30, WHITE);
+DrawText(TextFormat("%.0f", dist/10), e->x, e->y-50, 30, WHITE);
     switch (e->state)
     {
-        case STATE_PATROL:
+        case PATROLING:
         {
             e->x += e->vx * dt;
             if (e->x <= e->patrolLeft)
@@ -75,41 +76,70 @@ DrawText(TextFormat("dist %.0f", dist), e->x, e->y, 30, WHITE);
                 e->facing = -1;
             }
             if (dist < alertRange)
-                e->state = STATE_CHASE;
+                e->state = CHASE;
             break;
         }
-        case STATE_CHASE:
+        case CHASE:
         {
-            e->facing = (dx >= 0) ? 1 : -1;
-            e->vx = e->facing * chaseSpeed;
-            
-            float futureX = e->x + e->vx * dt;
+            if(fabsf(dx) > 4.0f)
+            {
+                e->facing = (dx >= 0) ? 1 : -1;
+                e->vx = e->facing * chaseSpeed;
+                
+                float futureX = e->x + e->vx * dt;
 
-            if(!e->elevated)
-                e->x = futureX;
+                if(!e->elevated)
+                    e->x = futureX;
 
-            else if(futureX >= e->patrolLeft && futureX + 40 <= e-> patrolRight)
-                e->x = futureX;
+                else if(futureX >= e->patrolLeft && futureX + 40 <= e-> patrolRight)
+                    e->x = futureX;
+            }
+            else
+            {
+                e->vx = 0;
+            }
 
             if (dist < attackRange && e->attackCooldown <= 0)
             {
-                e->state = STATE_ATTACK;
+                e->state = ATTACKING;
                 e->attackTimer = enemyAttackDur;
             }
             else if (dist > alertRange * 1.5f)
             {
-                e->state = STATE_PATROL;
+                e->state = RETURN;
             }
             break;
         }
-        case STATE_ATTACK:
+        case ATTACKING:
         {
             e->attackTimer -= dt;
             if (e->attackTimer <= 0)
             {
-                e->state = STATE_CHASE;
+                e->state = CHASE;
                 e->attackCooldown = enemyAttackCDMax;
             }
+            break;
+        }
+        case RETURN:
+        {
+            if(e->x >= e->patrolLeft && e->x +40 <= e->patrolRight)
+            {
+                e->state = PATROLING;
+                break;
+            }
+            if(e->x< e->patrolLeft)
+            {
+                e->facing = 1;
+                e->x += chaseSpeed * dt;
+            }
+            else
+            {
+                e->facing = -1;
+                e->x -= chaseSpeed * dt;
+            }
+            if(dist < alertRange)
+                e->state = CHASE;
+
             break;
         }
     }
@@ -157,11 +187,11 @@ void ResetGame(Player *p, Enemy enemies[])
     p->invincibleTimer = 0;
 
     enemies[0] = (Enemy){
-        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 400, .patrolRight = 550, .elevated = true, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = PATROLING, .patrolLeft = 400, .patrolRight = 550, .elevated = true, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
     enemies[1] = (Enemy){
-        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 320, .patrolRight = 620, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
+        .x = 480, .y = 360, .vx = -100, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = PATROLING, .patrolLeft = 320, .patrolRight = 620, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = -1};
     enemies[2] = (Enemy){
-        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = STATE_PATROL, .patrolLeft = 610, .patrolRight = 760, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
+        .x = 680, .y = 360, .vx = 90, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = PATROLING, .patrolLeft = 610, .patrolRight = 760, .elevated = false, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
 }
 
 int main(void)
@@ -323,7 +353,7 @@ int main(void)
                     }
                 }
 
-                if (e->state == STATE_ATTACK)
+                if (e->state == ATTACKING)
                 {
                     Rectangle ehit = GetEnemyAttackHitbox(*e);
                     if (player.invincibleTimer <= 0 && CheckCollisionRecs(ehit, pRect))
@@ -339,7 +369,7 @@ int main(void)
                     }
                     if (e->attackTimer <= 0)
                     {
-                        e->state = STATE_CHASE;
+                        e->state = CHASE;
                         e->attackCooldown = enemyAttackCDMax;
                     }
                 }
@@ -367,7 +397,7 @@ int main(void)
             float eyeX = (e->facing == 1) ? e->x + 30 : e->x + 10;
             DrawCircle((int)eyeX, (int)e->y + 10, 5, (Color){20, 20, 20, 255});
 
-            if (e->state == STATE_ATTACK)
+            if (e->state == ATTACKING)
             {
                 Rectangle ehit = GetEnemyAttackHitbox(*e);
                 DrawRectangleRec(ehit, (Color){160, 0, 0, 210});
