@@ -1,3 +1,0 @@
-# Silhouette
-
-nirjhar gay
