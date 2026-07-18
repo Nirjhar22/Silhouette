@@ -1,47 +1,8 @@
 #include <raylib.h>
 #include <math.h>
 
-typedef struct
-{
-    float x, y;
-    float vx, vy;
-    bool isOnGround;
-    bool isAttacking;
-    float attackTimer;
-    int facing;
-    bool hasHit;
-    int health;
-    float hitFlashTimer;
-    float invincibleTimer;
-    float attackCooldown;
-} Player;
-
-typedef enum
-{
-    PATROLING,
-    CHASE,
-    ATTACKING,
-    RETURN
-} EnemyState;
-
-typedef struct
-{
-    float x, y;
-    float vx;
-    float health;
-    int maxHealth;
-    bool isAlive;
-    float hitFlashTimer;
-    EnemyState state;
-    float patrolLeft;
-    float patrolRight;
-    float alertRange;
-    float chaseSpeed;
-    bool elevated;
-    float attackTimer;
-    float attackCooldown;
-    int facing;
-} Enemy;
+#include "player.h"
+#include "enemy.h"
 
 void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRange, float enemyAttackDur, float enemyAttackCDMax, float chaseSpeed)
 {
@@ -57,7 +18,6 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
     float dy = (p->y + 30) - (e->y + 30);
     float dist = sqrtf(dx * dx + dy * dy);
 
-DrawText(TextFormat("%.0f", dist/10), e->x, e->y-50, 30, WHITE);
     switch (e->state)
     {
         case PATROLING:
@@ -143,6 +103,8 @@ DrawText(TextFormat("%.0f", dist/10), e->x, e->y-50, 30, WHITE);
             break;
         }
     }
+
+    e->isAttacking = (e->state == ATTACKING);
 }
 
 Rectangle GetAttackHitbox(Player p)
@@ -185,6 +147,7 @@ void ResetGame(Player *p, Enemy enemies[])
     p->health = 10;
     p->hitFlashTimer = 0;
     p->invincibleTimer = 0;
+    p->attackCooldown = 0;
 
     enemies[0] = (Enemy){
         .x = 420, .y = 170, .vx = 80, .health = 3, .maxHealth = 3, .isAlive = true, .hitFlashTimer = 0, .state = PATROLING, .patrolLeft = 400, .patrolRight = 550, .elevated = true, .attackTimer = 0, .attackCooldown = 0, .facing = 1};
@@ -211,6 +174,12 @@ int main(void)
     Enemy enemies[3];
     Player player;
     ResetGame(&player, enemies);
+
+    PlayerSpriteSystem playerSprites;
+    InitPlayerSprites(&playerSprites);
+
+    EnemySpriteSystem enemySprites;
+    InitEnemySprites(&enemySprites);
 
     float speed = 200.0f;
     float gravity = 1000.0f;
@@ -373,13 +342,16 @@ int main(void)
                         e->attackCooldown = enemyAttackCDMax;
                     }
                 }
-
+            }
             if (aliveCount == 0)
                 gameWon = true;
-            }
+
+            UpdatePlayerSprites(&playerSprites, &player, dt);
+            UpdateEnemySprites(&enemySprites, enemies, enemyCount, dt);
         }
 
         BeginDrawing();
+
         ClearBackground((Color){24, 24, 36, 255});
 
         for (int i = 0; i < platformCount; i++)
@@ -391,17 +363,7 @@ int main(void)
             if (!e->isAlive)
                 continue;
 
-            Color bodyCol = (e->hitFlashTimer > 0) ? WHITE : RED;
-            DrawRectangle((int)e->x, (int)e->y, 40, 40, bodyCol);
-
-            float eyeX = (e->facing == 1) ? e->x + 30 : e->x + 10;
-            DrawCircle((int)eyeX, (int)e->y + 10, 5, (Color){20, 20, 20, 255});
-
-            if (e->state == ATTACKING)
-            {
-                Rectangle ehit = GetEnemyAttackHitbox(*e);
-                DrawRectangleRec(ehit, (Color){160, 0, 0, 210});
-            }
+            DrawEnemySprite(&enemySprites, i,e);
 
             DrawHealthBar(e->x, e->y - 16, 40, 9,
                           e->health, e->maxHealth,
@@ -409,17 +371,7 @@ int main(void)
                           (Color){60, 15, 15, 255});
         }
 
-        bool flashOn = (player.hitFlashTimer > 0 && (int)(player.hitFlashTimer * 14) % 2 == 0);
-        DrawRectangle((int)player.x, (int)player.y, 40, 60,
-                      flashOn ? (Color){255, 80, 80, 255} : BLUE);
-
-        DrawCircle((int)player.x + (player.facing == 1 ? 30 : 10), (int)player.y + 10, 5, (Color){20, 20, 20, 255});
-
-        if (player.isAttacking)
-        {
-            Rectangle hitbox = GetAttackHitbox(player);
-            DrawRectangleRec(hitbox, Fade(YELLOW, 0.55f));
-        }
+        DrawPlayerSprites(&playerSprites, &player);
 
         DrawText("HP", 10, 12, 18, WHITE);
         DrawHealthBar(40, 13, 160, 17,
@@ -447,6 +399,9 @@ int main(void)
 
         EndDrawing();
     }
+
+    UnloadPlayerSprites(&playerSprites);
+    UnloadEnemySprites(&enemySprites);
 
     CloseWindow();
     return 0;
