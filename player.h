@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include <raylib.h>
+
 typedef struct {
     float x, y;
     float vx, vy;
@@ -42,6 +43,7 @@ typedef struct {
     int currentFrame;
     float frameTimer;
 } PlayerSpriteSystem;
+
 void InitPlayerSprites(PlayerSpriteSystem *sys);
 void UpdatePlayerSprites(PlayerSpriteSystem *sys, const Player *p, float dt);
 void DrawPlayerSprites(const PlayerSpriteSystem *sys, const Player *p);

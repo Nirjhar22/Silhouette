@@ -58,7 +58,6 @@ void DrawPlayerSprites(const PlayerSpriteSystem *sys, const Player *p) {
         (float)(current.frameWidth * p->facing), 
         (float)current.frameHeight
     };
-
     
     float baseWidth = 70.0f;
     float basePadding = (baseWidth - 40.0f) / 2.0f; 

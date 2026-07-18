@@ -52,7 +52,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
                 if(!e->elevated)
                     e->x = futureX;
 
-                else if(futureX >= e->patrolLeft && futureX + 40 <= e-> patrolRight)
+                else if(futureX >= e->patrolLeft && futureX + 40 <= e->patrolRight)
                     e->x = futureX;
             }
             else
@@ -90,7 +90,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
                 e->state = PATROLLING;
                 break;
             }
-            if(e->x< e->patrolLeft)
+            if(e->x < e->patrolLeft)
             {
                 e->facing = 1;
                 e->x += chaseSpeed * dt;
@@ -201,10 +201,8 @@ bool ResolvePlatformCollisionY(float x, float *y, float w, float h, float *vy, R
     return landed;
 }
 
-void ResetGame(Player *p, Enemy enemies[], int enemyCount)
+void ResetGame(Player *p)
 {
-    (void)enemyCount;
-
     p->x = 100;
     p->y = 300;
     p->vx = 0;
@@ -275,7 +273,7 @@ void SetupLevels(Texture2D *bg1, Texture2D *bg2)
         .platforms = level2Platforms, .platformCount = LEVEL2_PLATFORM_COUNT,
         .background = bg2,
         .levelWidth = 1920, .levelHeight = 640,
-        .playerStartX = 100, .playerStartY = 300,
+        .playerStartX = 80, .playerStartY = 370,
         .enemySpawns= {
             {400, 536, 80, 400, 700, false},
             {750, 536, -80, 750, 1100, false},
@@ -350,7 +348,7 @@ int main(void)
     Enemy enemies[8];
     Player player;
 
-    ResetGame(&player, enemies, enemyCount);
+    ResetGame(&player);
     LoadLevel(0, &player, enemies, &enemyCount);
 
     float speed = 200.0f;
@@ -386,7 +384,7 @@ int main(void)
                 showMenu = false;
                 score = 0;
                 currentLevel = 0;
-                ResetGame(&player, enemies, enemyCount);
+                ResetGame(&player);
                 LoadLevel(currentLevel, &player, enemies, &enemyCount);
                 camera.target = (Vector2){ player.x + 20.0f, player.y + 30.0f };
             }
@@ -410,68 +408,65 @@ int main(void)
 
         if ((gameOver || gameWon) && IsKeyPressed(KEY_R) || (IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_MIDDLE_RIGHT)))
         {
-        currentLevel = 0;
+            currentLevel = 0;
 
-        score = 0;
+            score = 0;
 
-        ResetGame(&player, enemies, enemyCount);
+            ResetGame(&player);
 
-        LoadLevel(currentLevel, &player, enemies, &enemyCount);
+            LoadLevel(currentLevel, &player, enemies, &enemyCount);
 
-        gameOver = false;
-        gameWon = false;
+            gameOver = false;
+            gameWon = false;
 
-        camera.target = (Vector2){ player.x + 20.0f, player.y + 30.0f };
+            camera.target = (Vector2){ player.x + 20.0f, player.y + 30.0f };
         }
 
         if (!gameOver && !gameWon)
         {
-           player.vx = 0;
+            player.vx = 0;
 
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0.2f))
-    {
-        player.vx = speed;
-        player.facing = 1;
-    }
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -0.2f))
-    {
-        player.vx = -speed;
-        player.facing = -1;
-    }
-    player.x += player.vx * dt;
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0.2f))
+            {
+                player.vx = speed;
+                player.facing = 1;
+            }
+            if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -0.2f))
+            {
+                player.vx = -speed;
+                player.facing = -1;
+            }
+            player.x += player.vx * dt;
 
-    ResolvePlatformCollisionX(&player.x, player.y, 40, 60, &player.vx, currentPlatforms, currentPlatformCount);
+            ResolvePlatformCollisionX(&player.x, player.y, 40, 60, &player.vx, currentPlatforms, currentPlatformCount);
 
-    if (player.x < 0)
-        player.x = 0;
+            if ((player.jumps_left > 0 && IsKeyPressed(KEY_SPACE)) || (player.jumps_left > 0 && (IsGamepadAvailable(0) && IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))))
+            {
+                player.vy = -500.0f;
+                player.jumps_left--;
+            }    
+            player.isOnGround = false;
+            player.vy += gravity * dt;
+            player.y += player.vy * dt;
 
-    if ((player.jumps_left > 0 && IsKeyPressed(KEY_SPACE)) || (player.jumps_left > 0 && (IsGamepadAvailable(0) && IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))))
-    {
-        player.vy = -500.0f;
-        player.jumps_left--;}
-        
-    player.isOnGround = false;
-    player.vy += gravity * dt;
-    player.y += player.vy * dt;
+            if (ResolvePlatformCollisionY(player.x, &player.y, 40, 60, &player.vy, currentPlatforms, currentPlatformCount))
+            {
+                player.isOnGround = true;
+                player.jumps_left = player.max_jumps;
+            }
+            float mapPixelW = currentLevelWidth;
+            float mapPixelH = currentLevelHeight;
 
-    if (ResolvePlatformCollisionY(player.x, &player.y, 40, 60, &player.vy, currentPlatforms, currentPlatformCount))
-    {
-        player.isOnGround = true;
-        player.jumps_left = player.max_jumps;
-    }
-    float mapPixelW = currentLevelWidth;
-    float mapPixelH = currentLevelHeight;
+            if (player.x < 0) player.x = 0;
+            if (player.x + 40 > mapPixelW) player.x = mapPixelW - 40;
 
-    if (player.x < 0) player.x = 0;
-    if (player.x + 40 > mapPixelW) player.x = mapPixelW - 40;
-
-    if (player.y < 0) 
-        { player.y = 0; 
-        player.vy = 0; }
-    if (player.y + 60 > mapPixelH) 
-        { player.y = mapPixelH - 60; 
-        player.vy = 0; player.isOnGround = true; 
-        player.jumps_left = player.max_jumps; }
+            if (player.y < 0) 
+                { player.y = 0; 
+                player.vy = 0; }
+            if (player.y + 60 > mapPixelH) 
+                { player.y = mapPixelH - 60; 
+                player.vy = 0; player.isOnGround = true; 
+                player.jumps_left = player.max_jumps; }
 
             if((IsKeyPressed(KEY_Z) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (IsGamepadAvailable(0) && IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_TRIGGER_1))) && !player.isAttacking && player.attackCooldown <= 0)
             {
@@ -537,23 +532,23 @@ int main(void)
                 }
 
                 if (e->state == ATTACKING)
-{
-    if (player.invincibleTimer <= 0)
-    {
-        Rectangle ehit = GetEnemyAttackHitbox(*e);
-        if (CheckCollisionRecs(ehit, pRect))
-        {
-            player.health--;
-            player.hitFlashTimer = 0.35f;
-            player.invincibleTimer = 0.7f;
-            if (player.health <= 0)
-            {
-                player.health = 0;
-                gameOver = true;
-            }
-        }
-    }
-}
+                {
+                    if (player.invincibleTimer <= 0)
+                    {
+                        Rectangle ehit = GetEnemyAttackHitbox(*e);
+                        if (CheckCollisionRecs(ehit, pRect))
+                        {
+                            player.health--;
+                            player.hitFlashTimer = 0.35f;
+                            player.invincibleTimer = 0.7f;
+                            if (player.health <= 0)
+                            {
+                                player.health = 0;
+                                gameOver = true;
+                            }
+                        }
+                    }
+                }
                    
                 
             }
@@ -599,7 +594,7 @@ int main(void)
             if (!e->isAlive)
                 continue;
 
-           DrawEnemySprite(&enemySprites, i, e);
+            DrawEnemySprite(&enemySprites, i, e);
 
             DrawHealthBar(e->x, e->y - 16, 40, 9,
                           e->health, e->maxHealth,
