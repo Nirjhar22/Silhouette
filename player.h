@@ -14,6 +14,8 @@ typedef struct {
     float hitFlashTimer;
     float invincibleTimer;
     float attackCooldown;
+    int max_jumps;
+    int jumps_left;
 } Player;
 
 typedef enum {

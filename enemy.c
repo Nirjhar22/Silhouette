@@ -1,13 +1,6 @@
 #include "enemy.h"
 
 void InitEnemySprites(EnemySpriteSystem *sys) {
-    /*sys->whiteSet.idle   = LoadTexture("enemy/Skeleton_White/Skeleton_With_VFX/Skeleton_01_White_Idle.png");
-    sys->whiteSet.walk   = LoadTexture("enemy/Skeleton_White/Skeleton_With_VFX/Skeleton_01_White_Walk.png");
-    sys->whiteSet.attack = LoadTexture("enemy/Skeleton_White/Skeleton_With_VFX/Skeleton_01_White_Attack1.png");
-    sys->whiteSet.hurt   = LoadTexture("enemy/Skeleton_White/Skeleton_With_VFX/Skeleton_01_White_Hurt.png");
-    sys->whiteSet.die    = LoadTexture("enemy/Skeleton_White/Skeleton_With_VFX/Skeleton_01_White_Die.png");*/
-
-
 
 for (int i = 0; i < 4; i++)
 {
@@ -26,22 +19,12 @@ for (int i = 0; i < 6; i++)
     sys->whiteSet.walk[i] =
         LoadTexture(TextFormat("enemy/walk-R-%d.png", i + 1));
 }
-
-
-
-    /* Load Yellow Skeleton Textures (With VFX) for Enemy 2
-    sys->yellowSet.idle   = LoadTexture("enemy/Skeleton_Yellow/Skeleton_With_VFX/Skeleton_01_Yellow_Idle.png");
-    sys->yellowSet.walk   = LoadTexture("enemy/Skeleton_Yellow/Skeleton_With_VFX/Skeleton_01_Yellow_Walk.png");
-    sys->yellowSet.attack = LoadTexture("enemy/Skeleton_Yellow/Skeleton_With_VFX/Skeleton_01_Yellow_Attack1.png");
-    sys->yellowSet.hurt   = LoadTexture("enemy/Skeleton_Yellow/Skeleton_With_VFX/Skeleton_01_Yellow_Hurt.png");
-    sys->yellowSet.die    = LoadTexture("enemy/Skeleton_Yellow/Skeleton_With_VFX/Skeleton_01_Yellow_Die.png");
-    */
    
     ResetEnemySprites(sys);
 }
 
 void ResetEnemySprites(EnemySpriteSystem *sys) {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 8; i++) {
         sys->currentFrame[i] = 0;
         sys->frameTimer[i] = 0.0f;
         sys->currentAnim[i] = eANIM_IDLE;

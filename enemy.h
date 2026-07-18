@@ -13,7 +13,6 @@ typedef enum {
     eANIM_WALK,
     eANIM_ATTACK,
     eANIM_HURT,
-    //eANIM_DIE,
     eANIM_COUNT
 } EnemyAnimState;
 
@@ -24,28 +23,20 @@ typedef enum {
     RETURN
 } EnemyState;
 
-/*typedef struct {
-    Texture2D idle;
-    Texture2D walk;
-    Texture2D attack;
-    Texture2D hurt;
-    Texture2D die;
-} SkeletonTextures;*/
-
 typedef struct {
     Texture2D idle[IDLE_FRAMES];
     Texture2D walk[WALK_FRAMES];
     Texture2D attack[ATTACK_FRAMES];
     Texture2D hurt[HURT_FRAMES];
-} SkeletonTextures;
+} EnemyTextures;
 
 typedef struct {
-    SkeletonTextures whiteSet;
-    SkeletonTextures yellowSet;
+    EnemyTextures whiteSet;
+    EnemyTextures yellowSet;
     
-    int currentFrame[3];
-    float frameTimer[3];
-    EnemyAnimState currentAnim[3];
+    int currentFrame[8];
+    float frameTimer[8];
+    EnemyAnimState currentAnim[8];
 } EnemySpriteSystem;
 
 typedef struct {
@@ -63,6 +54,8 @@ typedef struct {
     int   facing;
     EnemyState state;
     bool  elevated;
+    float alertRange;
+    float chaseSpeed;
 } Enemy;
 
 void InitEnemySprites(EnemySpriteSystem *sys);
@@ -72,4 +65,4 @@ void DrawEnemySprite(EnemySpriteSystem *sys, int enemyIndex, const Enemy *e);
 void UnloadEnemySprites(EnemySpriteSystem *sys);
 Texture2D GetEnemyTexture(EnemySpriteSystem *sys, int enemyIndex, EnemyAnimState anim);
 
-#endif // ENEMY_H
+#endif
