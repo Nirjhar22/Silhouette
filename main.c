@@ -64,6 +64,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
             {
                 e->state = ATTACKING;
                 e->attackTimer = enemyAttackDur;
+                e->isAttacking = true;
             }
             else if (dist > alertRange * 1.5f)
             {
@@ -78,6 +79,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
             {
                 e->state = CHASE;
                 e->attackCooldown = enemyAttackCDMax;
+                e->isAttacking = false;
             }
             break;
         }
@@ -212,7 +214,7 @@ void ResetGame(Player *p, Enemy enemies[], int enemyCount)
     p->attackTimer = 0;
     p->facing = 1;
     p->hasHit = false;
-    p->health = 5;
+    p->health = 15;
     p->hitFlashTimer = 0;
     p->invincibleTimer = 0;
     p->max_jumps = 2;
@@ -302,7 +304,7 @@ void LoadLevel(int idx, Player *p, Enemy enemies[], int *enemyCountOut)
     p->y = lv->playerStartY;
     p->vx = 0; p->vy = 0;
     p->isOnGround = false;
-    p->health = 5;
+    p->health = 15;
 
     *enemyCountOut = lv->enemyCount;
     for (int i = 0; i < lv->enemyCount; i++)
@@ -324,11 +326,13 @@ int main(void)
 
     InitAudioDevice();
     Music bgm = LoadMusicStream("music/wolf.mp3");
-    SetMusicVolume(bgm, 0.5f);
+    SetMusicVolume(bgm, 0.0f);
     PlayMusicStream(bgm);
 
     Texture2D background1 = LoadTexture("assets/1st level.png");
     Texture2D background2 = LoadTexture("assets/2nd level.png");
+
+    Font century = LoadFont("assets/anime-ace.regular.ttf");
 
     SetupLevels(&background1, &background2);
 
@@ -390,15 +394,12 @@ int main(void)
             const char *title = "SILHOUETTE";
             int titleFs = 60;
             int titleW = MeasureText(title, titleFs);
-            DrawText(title, (800 - titleW) / 2, 140, titleFs, (Color){230, 230, 230, 255});
+            DrawTextEx(century, title, (Vector2){(800 - titleW) / 2, 140}, titleFs, 1, (Color){230, 230, 230, 255});
 
             const char *prompt = "Press ENTER to start";
             int promptFs = 24;
             int promptW = MeasureText(prompt, promptFs);
-            DrawText(prompt, (800 - promptW) / 2, 240, promptFs, (Color){180, 180, 180, 255});
-
-            DrawText("Arrows: Move  |  Space: Jump  |  Z/LMB: Attack",
-                     10, 430, 13, (Color){140, 140, 140, 255});
+            DrawTextEx(century, prompt, (Vector2){(800 - promptW) / 2, 240}, promptFs, 1, (Color){180, 180, 180, 255});
 
             EndDrawing();
             continue;
@@ -604,13 +605,12 @@ int main(void)
 
         DrawPlayerSprites(&playerSprites, &player);
 
-        
         EndMode2D();
 
-        DrawText("HP", 10, 12, 18, WHITE);
+        DrawTextEx(century, "HP", (Vector2){10, 12}, 18, 1, RED);
         DrawHealthBar(40, 13, 160, 17, player.health, 15, (Color){70, 210, 100, 255}, (Color){40, 40, 40, 255});
 
-        DrawText(TextFormat("Score: %d", score), 650, 15, 20, BLACK);
+        DrawTextEx(century, TextFormat("Score: %d", score), (Vector2){650, 15}, 20, 1, BLACK);
 
         if (gameWon || gameOver)
         {
@@ -620,15 +620,15 @@ int main(void)
             Color col = gameWon ? (Color){80, 255, 130, 255} : (Color){220, 50, 50, 255};
             int fs = 56;
             int tw = MeasureText(msg, fs);
-            DrawText(msg, (800 - tw) / 2, 155, fs, col);
+            DrawTextEx(century, msg, (Vector2){(800 - tw) / 2, 155}, fs, 1, col);
 
             const char *sub = "Press  R  to play again";
             int stw = MeasureText(sub, 22);
-            DrawText(sub, (800 - stw) / 2, 240, 22, WHITE);
+            DrawTextEx(century, sub, (Vector2){(800 - stw) / 2, 240}, 22, 1, WHITE);
 
             const char *scoreMsg = TextFormat("Score: %d", score);
             int smw = MeasureText(scoreMsg, 20);
-            DrawText(scoreMsg, (800 - smw) / 2, 280, 20, (Color){220, 220, 220, 255});
+            DrawTextEx(century, scoreMsg, (Vector2){(800 - smw) / 2, 280}, 20, 1, (Color){220, 220, 220, 255});
         }
 
         EndDrawing();
