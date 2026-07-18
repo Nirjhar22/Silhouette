@@ -82,14 +82,6 @@ switch (sys->currentAnim[i])
         break;
 }
 
-
-
-
-        //Texture2D tex = GetEnemyTexture(sys, i, sys->currentAnim[i]);
-        //if (tex.id == 0) continue;
-        
-        //int frameWidth = tex.height; 
-        //int frameCount = tex.width / frameWidth;
         if (frameCount <= 0) frameCount = 1;
         
         sys->frameTimer[i] += dt;

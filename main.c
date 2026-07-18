@@ -328,7 +328,7 @@ int main(void)
 
     InitAudioDevice();
     Music bgm = LoadMusicStream("music/wolf.mp3");
-    SetMusicVolume(bgm, 0.0f);
+    SetMusicVolume(bgm, 0.4f);
     PlayMusicStream(bgm);
 
     Texture2D background1 = LoadTexture("assets/1st level.png");

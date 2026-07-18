@@ -32,7 +32,6 @@ typedef struct {
 
 typedef struct {
     EnemyTextures whiteSet;
-    EnemyTextures yellowSet;
     
     int currentFrame[8];
     float frameTimer[8];
