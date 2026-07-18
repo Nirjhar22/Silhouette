@@ -17,7 +17,7 @@ typedef enum {
 } EnemyAnimState;
 
 typedef enum {
-    PATROLING,
+    PATROLLING,
     CHASE,
     ATTACKING,
     RETURN

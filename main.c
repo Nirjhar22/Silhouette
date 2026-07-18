@@ -21,7 +21,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
     
     switch (e->state)
     {
-        case PATROLING:
+        case PATROLLING:
         {
             e->x += e->vx * dt;
             if (e->x <= e->patrolLeft)
@@ -87,7 +87,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
         {
             if(e->x >= e->patrolLeft && e->x +40 <= e->patrolRight)
             {
-                e->state = PATROLING;
+                e->state = PATROLLING;
                 break;
             }
             if(e->x< e->patrolLeft)
@@ -264,9 +264,9 @@ void SetupLevels(Texture2D *bg1, Texture2D *bg2)
         .levelWidth = 1920, .levelHeight = 640,
         .playerStartX = 100, .playerStartY = 300,
         .enemySpawns= {
-            {420, 170, 80, 405, 505, false},
-            {480, 360, -100, 320, 620, false},
-            {680, 360, 90, 610, 760, false},
+            {500, 536, 80, 400, 650, false},
+            {1450, 152, -80, 1260, 1750, true},
+            {860, 88, 80, 750, 1010, true},
         },
         .enemyCount = 3
     };
@@ -277,14 +277,14 @@ void SetupLevels(Texture2D *bg1, Texture2D *bg2)
         .levelWidth = 1920, .levelHeight = 640,
         .playerStartX = 100, .playerStartY = 300,
         .enemySpawns= {
-            {710,  56,  80, 710,  815, false},
-            {1000, 88,  90, 1000, 1500, false},
-            {300,  120, -70, 300, 525, false},
-            {710,  216, 100, 710,  790, false},
-            {1575, 216, -85, 1575, 1680, false},
-            {515,  312, 95,  515,  595, false},
-            {805,  376, -75, 805,  945, false},
-            {295,  408, 110, 295,  405, false},
+            {400, 536, 80, 400, 700, false},
+            {750, 536, -80, 750, 1100, false},
+            {1100, 536, 80, 1150, 1550, false},
+            {1136, 88, 80, 992, 1280, true},
+            {1424, 88, -80, 1280, 1568, true},
+            {432, 120, 80, 288, 576, true},
+            {96, 248, -80, 0, 192, true},
+            {896, 376, 80, 800, 992, true},
         },
         .enemyCount = 8
     };
@@ -305,6 +305,8 @@ void LoadLevel(int idx, Player *p, Enemy enemies[], int *enemyCountOut)
     p->vx = 0; p->vy = 0;
     p->isOnGround = false;
     p->health = 15;
+    p->max_jumps = 2;
+    p->jumps_left = 2;
 
     *enemyCountOut = lv->enemyCount;
     for (int i = 0; i < lv->enemyCount; i++)
@@ -313,7 +315,7 @@ void LoadLevel(int idx, Player *p, Enemy enemies[], int *enemyCountOut)
         enemies[i] = (Enemy){
             .x = s->x, .y = s->y, .vx = s->vx,
             .health = 3, .maxHealth = 3, .isAlive = true,
-            .state = PATROLING,
+            .state = PATROLLING,
             .patrolLeft = s->patrolLeft, .patrolRight = s->patrolRight,
             .elevated = s->elevated,
             .facing = (s->vx >= 0) ? 1 : -1
@@ -332,7 +334,8 @@ int main(void)
     Texture2D background1 = LoadTexture("assets/1st level.png");
     Texture2D background2 = LoadTexture("assets/2nd level.png");
 
-    Font century = LoadFont("assets/anime-ace.regular.ttf");
+    Font comfort = LoadFont("assets/Comfortaa-Regular.otf");
+    Font ace = LoadFont("assets/anime-ace.regular.ttf");
 
     SetupLevels(&background1, &background2);
 
@@ -378,7 +381,7 @@ int main(void)
 
         if (showMenu)
         {
-            if (IsKeyPressed(KEY_ENTER))
+            if (IsKeyPressed(KEY_ENTER) || IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
             {
                 showMenu = false;
                 score = 0;
@@ -394,18 +397,18 @@ int main(void)
             const char *title = "SILHOUETTE";
             int titleFs = 60;
             int titleW = MeasureText(title, titleFs);
-            DrawTextEx(century, title, (Vector2){(800 - titleW) / 2, 140}, titleFs, 1, (Color){230, 230, 230, 255});
+            DrawTextEx(ace, title, (Vector2){(800 - titleW) / 2, 140}, titleFs, 1, (Color){230, 230, 230, 255});
 
             const char *prompt = "Press ENTER to start";
             int promptFs = 24;
             int promptW = MeasureText(prompt, promptFs);
-            DrawTextEx(century, prompt, (Vector2){(800 - promptW) / 2, 240}, promptFs, 1, (Color){180, 180, 180, 255});
+            DrawTextEx(comfort, prompt, (Vector2){(800 - promptW) / 2, 240}, promptFs, 1, (Color){180, 180, 180, 255});
 
             EndDrawing();
             continue;
         }
 
-        if ((gameOver || gameWon) && IsKeyPressed(KEY_R))
+        if ((gameOver || gameWon) && IsKeyPressed(KEY_R) || (IsGamepadAvailable(0) && IsGamepadButtonDown(0, GAMEPAD_BUTTON_MIDDLE_RIGHT)))
         {
         currentLevel = 0;
 
@@ -423,14 +426,14 @@ int main(void)
 
         if (!gameOver && !gameWon)
         {
-
            player.vx = 0;
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D))
+
+    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0.2f))
     {
         player.vx = speed;
         player.facing = 1;
     }
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A))
+    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A) || (IsGamepadAvailable(0) && GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -0.2f))
     {
         player.vx = -speed;
         player.facing = -1;
@@ -442,7 +445,8 @@ int main(void)
     if (player.x < 0)
         player.x = 0;
 
-    if (IsKeyPressed(KEY_SPACE) && player.jumps_left > 0){
+    if ((player.jumps_left > 0 && IsKeyPressed(KEY_SPACE)) || (player.jumps_left > 0 && (IsGamepadAvailable(0) && IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))))
+    {
         player.vy = -500.0f;
         player.jumps_left--;}
         
@@ -469,7 +473,7 @@ int main(void)
         player.vy = 0; player.isOnGround = true; 
         player.jumps_left = player.max_jumps; }
 
-           if ((IsKeyPressed(KEY_Z) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) && !player.isAttacking && player.attackCooldown <= 0) 
+            if((IsKeyPressed(KEY_Z) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (IsGamepadAvailable(0) && IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_TRIGGER_1))) && !player.isAttacking && player.attackCooldown <= 0)
             {
                 player.isAttacking = true;
                 player.attackTimer = attackDuration;
@@ -607,10 +611,10 @@ int main(void)
 
         EndMode2D();
 
-        DrawTextEx(century, "HP", (Vector2){10, 12}, 18, 1, RED);
+        DrawTextEx(ace, "HP", (Vector2){10, 12}, 18, 1, RED);
         DrawHealthBar(40, 13, 160, 17, player.health, 15, (Color){70, 210, 100, 255}, (Color){40, 40, 40, 255});
 
-        DrawTextEx(century, TextFormat("Score: %d", score), (Vector2){650, 15}, 20, 1, BLACK);
+        DrawTextEx(ace, TextFormat("Score: %d", score), (Vector2){650, 15}, 20, 1, BLACK);
 
         if (gameWon || gameOver)
         {
@@ -620,15 +624,15 @@ int main(void)
             Color col = gameWon ? (Color){80, 255, 130, 255} : (Color){220, 50, 50, 255};
             int fs = 56;
             int tw = MeasureText(msg, fs);
-            DrawTextEx(century, msg, (Vector2){(800 - tw) / 2, 155}, fs, 1, col);
+            DrawTextEx(comfort, msg, (Vector2){(800 - tw) / 2, 155}, fs, 1, col);
 
             const char *sub = "Press  R  to play again";
             int stw = MeasureText(sub, 22);
-            DrawTextEx(century, sub, (Vector2){(800 - stw) / 2, 240}, 22, 1, WHITE);
+            DrawTextEx(comfort, sub, (Vector2){(800 - stw) / 2, 240}, 22, 1, WHITE);
 
             const char *scoreMsg = TextFormat("Score: %d", score);
             int smw = MeasureText(scoreMsg, 20);
-            DrawTextEx(century, scoreMsg, (Vector2){(800 - smw) / 2, 280}, 20, 1, (Color){220, 220, 220, 255});
+            DrawTextEx(comfort, scoreMsg, (Vector2){(800 - smw) / 2, 280}, 20, 1, (Color){220, 220, 220, 255});
         }
 
         EndDrawing();

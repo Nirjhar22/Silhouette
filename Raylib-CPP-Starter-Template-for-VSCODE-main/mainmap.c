@@ -24,7 +24,7 @@ typedef struct
 
 typedef enum
 {
-    PATROLING,
+    PATROLLING,
     CHASE,
     ATTACKING,
     RETURN
@@ -65,7 +65,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
     TraceLog(LOG_INFO, "state=%d dist=%.1f alertRange=%.1f", e->state, dist, alertRange);
     switch (e->state)
     {
-        case PATROLING:
+        case PATROLLING:
         {
             e->x += e->vx * dt;
             if (e->x <= e->patrolLeft)
@@ -129,7 +129,7 @@ void UpdateEnemy(Enemy *e, Player *p, float dt, float attackRange, float alertRa
         {
             if(e->x >= e->patrolLeft && e->x +40 <= e->patrolRight)
             {
-                e->state = PATROLING;
+                e->state = PATROLLING;
                 break;
             }
             if(e->x< e->patrolLeft)
@@ -288,7 +288,7 @@ void LoadLevel(int idx, Player *p, Enemy enemies[], int *enemyCountOut)
         enemies[i] = (Enemy){
     .x = s->x, .y = s->y, .vx = s->vx,
     .health = 3, .maxHealth = 3, .isAlive = true,
-    .state = PATROLING,
+    .state = PATROLLING,
     .patrolLeft = s->patrolLeft, .patrolRight = s->patrolRight,
     .elevated = s->elevated,
     .alertRange = 200.0f,
